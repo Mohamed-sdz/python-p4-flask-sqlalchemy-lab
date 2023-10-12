@@ -1,34 +1,42 @@
-#!/usr/bin/env python3
-
-from flask import Flask, make_response
-from flask_migrate import Migrate
-
-from models import db, Zookeeper, Enclosure, Animal
+from flask import Flask, jsonify
+from flask_sqlalchemy import SQLAlchemy  # Import SQLAlchemy
 
 app = Flask(__name__)
+
+# Configuration for the SQLite database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-migrate = Migrate(app, db)
+# Initialize SQLAlchemy with the Flask app
+db = SQLAlchemy(app)  # Initialize SQLAlchemy
 
-db.init_app(app)
+# Import your models here
+from server.models import Animal, Zookeeper, Enclosure
 
-@app.route('/')
-def home():
-    return '<h1>Zoo app</h1>'
+# Define routes and views here
 
-@app.route('/animal/<int:id>')
+@app.route('/animal/<int:id>', methods=['GET'])
 def animal_by_id(id):
-    return ''
+    # Retrieve the animal from the database based on the given ID
+    animal = Animal.query.get(id)
+    
+    if not animal:
+        return jsonify({'error': 'Animal not found'}), 404
+    
+    # Build a response containing the attributes of the animal
+    response = {
+        'animal ID': animal.id,
+        'name': animal.name,
+        'species': animal.species,
+        'zookeeper': animal.zookeeper.name if animal.zookeeper else None,
+        'enclosure': animal.enclosure.environment if animal.enclosure else None
+    }
+    
+    return jsonify(response), 200
 
-@app.route('/zookeeper/<int:id>')
-def zookeeper_by_id(id):
-    return ''
-
-@app.route('/enclosure/<int:id>')
-def enclosure_by_id(id):
-    return ''
-
+# Add similar routes and views for zookeeper_by_id and enclosure_by_id
 
 if __name__ == '__main__':
-    app.run(port=5555, debug=True)
+    app.run(debug=True)
+
+
